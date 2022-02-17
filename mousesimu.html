@@ -1,0 +1,141 @@
+<!DOCTYPE html>
+<html>
+<head>
+	<meta charset="utf-8">
+	<title>MicroMouse Simulator</title>
+	<style>* {padding:0;margin:0;} canvas {background: #eee; display: block;margin:0 auto;}</style>
+</head>
+<body>
+
+<canvas id="mycanvas" width="640" height="640"></canvas>
+
+<script>
+	let cvs = document.getElementById("mycanvas");
+	let ctx = cvs.getContext("2d");
+	
+	const MAZESIZE = 4;
+	const RECTSIZE = 50;
+	const WALLSIZE = 2;
+
+	let mouse_img = new Image();
+	mouse_img.src = "https://4.bp.blogspot.com/-7SeW4MvjfRw/VJF_KaYOeOI/AAAAAAAApzc/0oR_HDOmYy4/s800/animalface_nezumi.png";
+	const MOUSESIZE = RECTSIZE * 0.6;
+	let log = [];
+	let mx = 0;
+	let my = 0;
+	let mr = 0;
+	
+	let maze = [
+		[0b1110,0b1001,0b1101,0b1101],
+		[0b1100,0b0010,0b0011,0b0101],
+		[0b0100,0b1011,0b1100,0b0001],
+		[0b0110,0b1010,0b0011,0b0111]
+	];
+
+	let start = [0,0,0];
+	let goal  = [3,3];
+	let timer;
+	//0:LeftHand
+	let type = 0;
+	
+	function drawMaze(){
+		for(let i = 0;i<MAZESIZE;i++){
+			for(let j = 0;j<MAZESIZE;j++){
+				var wall = maze[i][j];
+				var cx = (j+1)*RECTSIZE;
+				var cy = (i+1)*RECTSIZE;
+				if(wall & 0b1000) ctx.fillRect(cx,cy-WALLSIZE,RECTSIZE,WALLSIZE*2);
+				if(wall & 0b0100) ctx.fillRect(cx-WALLSIZE,cy,WALLSIZE*2,RECTSIZE);
+				if(wall & 0b0010) ctx.fillRect(cx,cy+RECTSIZE-WALLSIZE,RECTSIZE,WALLSIZE*2);
+				if(wall & 0b0001) ctx.fillRect(cx+RECTSIZE-WALLSIZE,cy,WALLSIZE*2,RECTSIZE);
+			}
+		}
+	}
+
+	function drawMouse(){
+		ctx.save();
+		var x = (mx+1.5)*RECTSIZE;
+		var y = (my+1.5)*RECTSIZE;
+		ctx.translate(x,y);
+		ctx.rotate((mr + 270 ) * (Math.PI / 180));
+		var tmp = -1 * (MOUSESIZE/2);
+		ctx.drawImage(mouse_img,tmp,tmp,MOUSESIZE,MOUSESIZE);
+		ctx.restore();
+	}
+
+	function draw(){
+		ctx.clearRect(0,0,cvs.width,cvs.height);
+		drawMaze();
+		drawMouse();
+	}
+
+	function mouseLTurn(){
+		mr += 90;
+		log.push("L");
+	}
+
+	function mouseRTurn(){
+		mr -= 90;
+		if(mr < 0) mr+=360;
+		log.push("R");
+	}
+
+	function mouseGo(){
+		mx+=Math.round(Math.cos(mr*(Math.PI / 180)));
+		my+=Math.round(Math.sin(mr*(Math.PI / 180)));
+		log.push("G");
+	}
+	
+	let isTurned = false;
+	function LeftMethod(){
+		let around = maze[my][mx];
+		for(let i = 0;i<(mr/90%4);i++){
+			if(around & 0b1) around += 0b10000;
+			around = around >> 1;
+		}
+
+		if(!(around & 0b1000 || isTurned)){
+			mouseRTurn();
+			isTurned = true;
+		} else if(around & 0b1){
+			mouseLTurn();
+		}else{
+			mouseGo();
+			isTurned = false;
+		}
+		
+	}
+
+	function main(){
+		switch(type){
+			case 0:
+				LeftMethod();
+				break;
+		}
+		if(mx == goal[0] && my == goal[1]){
+			clearInterval(timer);
+		}
+		draw();
+	}
+
+	function init(){
+		log = [];
+		mx = start[0],my = start[1],mr = start[2];
+		clearInterval(timer);
+		draw();
+	}
+
+	function run(){
+		timer = setInterval(main,100);
+	}
+
+	function run_Left(){
+		init();
+		type = 0;
+		setTimeout(run,500);
+	}
+
+</script>
+<input type="button" value="LeftHandApproach" onclick="run_Left();">
+</body>
+</html>
